@@ -101,6 +101,9 @@
         if (ev.type === "participant_joined" || ev.type === "participant_left") {
           refreshPresence().catch(() => {});
         }
+        if (typeof ev.type === "string" && (ev.type.startsWith("poll") || ev.type === "audience_decision_applied")) {
+          refreshPollPanel().catch(() => {});
+        }
       } catch {
         // Ignore malformed rows; keep the stream open.
       }
@@ -118,6 +121,8 @@
       "mission_failed",
       "mission_reset",
       "poll_opened",
+      "poll_closing",
+      "poll_closed",
       "vote_recorded",
       "audience_decision_applied",
       "agent_started",
@@ -146,6 +151,7 @@
     await loadHistory();
     connectStream();
     await refreshPresence();
+    await refreshPollPanel();
   }
 
   async function action(suffix, body) {
@@ -155,6 +161,7 @@
       body: body ? JSON.stringify(body) : undefined,
     });
     await refreshMission();
+    await refreshPollPanel();
   }
 
   document.getElementById("btn-create").onclick = async () => {
@@ -167,6 +174,7 @@
     await loadHistory();
     connectStream();
     await refreshPresence();
+    await refreshPollPanel();
   };
   document.getElementById("btn-start").onclick = () => action("/start").catch((e) => alert(e.message));
   document.getElementById("btn-pause").onclick = () => action("/pause").catch((e) => alert(e.message));
@@ -178,6 +186,141 @@
   document.getElementById("btn-fail").onclick = () =>
     action("/fail", { error: "Demo failure" }).catch((e) => alert(e.message));
   document.getElementById("btn-reset").onclick = () => action("/reset").catch((e) => alert(e.message));
+
+  // -- F3 presenter poll panel (textContent-only; server data is untrusted) --
+  const pollSummaryEl = document.getElementById("poll-current-summary");
+  const pollActionsEl = document.getElementById("poll-current-actions");
+  const pollTallyEl = document.getElementById("poll-current-tally");
+  const pollOutcomeEl = document.getElementById("poll-current-outcome");
+  const pollMessageEl = document.getElementById("poll-message");
+  const pollRowsEl = document.getElementById("poll-option-rows");
+  let currentPoll = null;
+  let pollCountdownTimer = null;
+
+  function pollMessage(text) {
+    pollMessageEl.textContent = text;
+  }
+
+  function addOptionRow(idVal = "", labelVal = "", branchVal = "") {
+    const row = document.createElement("p");
+    const idInput = document.createElement("input");
+    idInput.placeholder = "option id";
+    idInput.value = idVal;
+    idInput.size = 12;
+    const labelInput = document.createElement("input");
+    labelInput.placeholder = "label shown to voters";
+    labelInput.value = labelVal;
+    labelInput.size = 24;
+    const branchInput = document.createElement("input");
+    branchInput.placeholder = "next-step instructions if this wins";
+    branchInput.value = branchVal;
+    branchInput.size = 36;
+    row.append(idInput, document.createTextNode(" "), labelInput, document.createTextNode(" "), branchInput);
+    pollRowsEl.appendChild(row);
+  }
+
+  function renderPollPanel(poll) {
+    currentPoll = poll;
+    if (!poll) {
+      pollSummaryEl.textContent = "No open poll";
+      pollActionsEl.hidden = true;
+      pollTallyEl.textContent = "";
+      pollOutcomeEl.textContent = "";
+      return;
+    }
+    const secs = Math.max(0, Math.ceil((Date.parse(poll.deadline_at) - Date.now()) / 1000));
+    pollSummaryEl.textContent =
+      `Open poll: ${poll.question} · state ${poll.state} · ${poll.reveal_mode} reveal` +
+      (poll.state === "open" ? ` · closes in ${secs}s` : "");
+    pollActionsEl.hidden = false;
+    if (poll.tally) {
+      const parts = poll.options.map((o) => `${o.label}: ${poll.tally[o.id] ?? 0}`);
+      pollTallyEl.textContent = `Counts: ${parts.join(" · ")} (total ${poll.total_votes})`;
+    } else {
+      pollTallyEl.textContent = `Votes so far: ${poll.total_votes} (counts hidden until close)`;
+    }
+    pollOutcomeEl.textContent = poll.outcome
+      ? `Outcome: ${poll.outcome.winning_option_id} (${poll.outcome.decided_by})`
+      : "";
+  }
+
+  async function refreshPollPanel() {
+    if (!missionId) return;
+    try {
+      const data = await api(`/api/missions/${missionId}/polls/current`);
+      renderPollPanel(data.poll);
+    } catch {
+      // Keep the last known poll state; the banner already shows staleness.
+    }
+  }
+
+  document.getElementById("btn-poll-add-option").onclick = () => addOptionRow();
+  document.getElementById("poll-open-form").onsubmit = async (ev) => {
+    ev.preventDefault();
+    const options = [];
+    for (const row of pollRowsEl.children) {
+      const [idInput, labelInput, branchInput] = row.querySelectorAll("input");
+      options.push({
+        id: idInput.value.trim(),
+        label: labelInput.value.trim(),
+        branch_instruction: branchInput.value.trim(),
+      });
+    }
+    try {
+      const body = {
+        question: document.getElementById("poll-question").value,
+        options,
+        deadline_seconds: Number(document.getElementById("poll-deadline").value) || 60,
+        reveal_mode: document.getElementById("poll-reveal").value,
+      };
+      const res = await fetch(`/api/missions/${missionId}/polls`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        let detail = res.statusText;
+        try {
+          detail = (await res.json()).detail || detail;
+        } catch {
+          // Keep status text when the body is not JSON.
+        }
+        throw new Error(detail);
+      }
+      pollMessage("Poll opened.");
+      await refreshPollPanel();
+    } catch (e) {
+      pollMessage(`Could not open poll: ${e.message}`);
+    }
+  };
+  document.getElementById("btn-poll-close").onclick = async () => {
+    if (!currentPoll) return;
+    try {
+      await action(`/polls/${currentPoll.id}/close`);
+      pollMessage("Poll closed.");
+      await refreshPollPanel();
+    } catch (e) {
+      pollMessage(`Could not close poll: ${e.message}`);
+    }
+  };
+  document.getElementById("btn-poll-resolve").onclick = async () => {
+    if (!currentPoll) return;
+    const choice = document.getElementById("poll-resolve-choice").value.trim();
+    try {
+      await action(`/polls/${currentPoll.id}/resolve`, { winning_option_id: choice });
+      pollMessage("Decision applied — the mission's next step follows the winner.");
+      await refreshPollPanel();
+    } catch (e) {
+      pollMessage(`Could not resolve poll: ${e.message}`);
+    }
+  };
+
+  addOptionRow("deep", "Go deeper", "Critic verifies cited sources.");
+  addOptionRow("wide", "Counterarguments", "Critic finds counterarguments.");
+  pollCountdownTimer = setInterval(() => {
+    if (currentPoll) renderPollPanel(currentPoll);
+  }, 1000);
+  void pollCountdownTimer;
 
   setConn(false);
   ensureMission().catch(() => setConn(false));

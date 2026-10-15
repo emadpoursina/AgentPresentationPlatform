@@ -15,6 +15,7 @@ from backend.app.events.store import EventStore
 from backend.app.events.store import event_store as _event_store
 
 from .models import (
+    BranchContext,
     CompleteMissionRequest,
     CreateMissionRequest,
     FailMissionRequest,
@@ -152,8 +153,57 @@ class MissionController:
             mission.result_summary = None
             mission.outcome = None
             mission.error = None
+            mission.branch_context = BranchContext()
             mission.updated_at = utcnow()
         self._store.append("mission_reset", mission.id, {"previous_status": previous.value})
+        return mission
+
+    def apply_decision(
+        self,
+        mission_id: str,
+        poll_id: str,
+        winning_option_id: str,
+        branch_map: dict[str, str],
+        decided_by: str = "tally",
+    ) -> Mission:
+        """Narrow F3 hook: record a completed poll's outcome and patch the
+        next step's task instructions from the winning option. Thin
+        coordinator only — no agent execution (Hermes owns that in F5);
+        Hermes reads `branch_context` when running the next step."""
+        from backend.app.polls.models import AudienceDecision
+
+        mission = self.get(mission_id)
+        if mission.status not in (MissionStatus.RUNNING, MissionStatus.PAUSED):
+            raise InvalidTransitionError(mission_id, "apply decision", mission.status)
+        if winning_option_id not in branch_map:
+            raise ValueError(f"unknown winning option: {winning_option_id!r}")
+        instruction = (branch_map[winning_option_id] or "").strip()
+        decision = AudienceDecision(
+            poll_id=poll_id,
+            mission_id=mission_id,
+            winning_option_id=winning_option_id,
+            decided_by=decided_by,  # type: ignore[arg-type]
+            applied_at=utcnow(),
+        )
+        with self._lock:
+            mission.branch_context.applied_decisions.append(decision)
+            if instruction:
+                mission.branch_context.current_branch_instruction = instruction
+                current = mission.current_step
+                if current is not None:
+                    current.description = instruction
+            mission.updated_at = utcnow()
+        self._store.append(
+            "audience_decision_applied",
+            mission.id,
+            {
+                "poll_id": poll_id,
+                "winning_option_id": winning_option_id,
+                "decided_by": decided_by,
+                "next_step": instruction
+                or (mission.current_step.description if mission.current_step else ""),
+            },
+        )
         return mission
 
     # -- internals --------------------------------------------------------
