@@ -4,12 +4,47 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Live Agent Playground</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 1.5rem; max-width: 900px; }
+      #conn { padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+      #conn.connected { background: #e6f4ea; color: #137333; }
+      #conn.disconnected { background: #fce8e6; color: #a50e0e; }
+      #mission { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+      #controls button { margin: 0.25rem 0.25rem 0.25rem 0; }
+      #events { list-style: none; padding: 0; }
+      #events li { border-bottom: 1px solid #eee; padding: 0.4rem 0; font-size: 0.9rem; }
+      .meta { color: #555; }
+    </style>
   </head>
   <body>
     <main>
       <h1>Live Agent Playground</h1>
-      <p id="status">Scaffold only. Join, polls, and dashboard arrive via feature cards.</p>
-      <div id="dashboard"></div>
+      <div id="conn" class="disconnected" role="status">Disconnected — showing last known state, not live.</div>
+
+      <section id="mission" aria-live="polite">
+        <h2 id="mission-title">No mission yet</h2>
+        <p>
+          Status: <strong id="mission-status">—</strong>
+          · Step: <span id="mission-step">—</span>
+          · Progress: <span id="mission-progress">0%</span>
+        </p>
+        <p id="mission-result" class="meta"></p>
+        <div id="controls">
+          <button id="btn-create" type="button">New mission</button>
+          <button id="btn-start" type="button">Start</button>
+          <button id="btn-pause" type="button">Pause</button>
+          <button id="btn-resume" type="button">Resume</button>
+          <button id="btn-complete" type="button">Complete</button>
+          <button id="btn-fail" type="button">Fail</button>
+          <button id="btn-reset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Live activity (real events only)</h2>
+        <p class="meta">Structured events from the mission controller. No simulated activity is shown.</p>
+        <ul id="events"></ul>
+      </section>
     </main>
     <script src="/app.js"></script>
   </body>

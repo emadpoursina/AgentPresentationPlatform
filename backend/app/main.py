@@ -1,8 +1,4 @@
-"""Scaffold FastAPI entrypoint. No mission/agent/business logic here.
-
-Feature cards add: mission routes, polls/votes, SSE/WebSocket event stream,
-QR join URL, presenter controls, Telegram Q&A fallback.
-"""
+"""FastAPI entrypoint: health, mission controller (F1), event stream, static UI."""
 
 from pathlib import Path
 
@@ -10,9 +6,15 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-STATIC_DIR = Path(__file__).resolve().parents[3] / "frontend" / "static"
+from backend.app.api.events import router as events_router
+from backend.app.api.missions import router as missions_router
+
+STATIC_DIR = Path(__file__).resolve().parents[2] / "frontend" / "static"
 
 app = FastAPI(title="Live Agent Playground", version="0.1.0")
+
+app.include_router(missions_router)
+app.include_router(events_router)
 
 
 @app.get("/api/health", response_class=JSONResponse)
