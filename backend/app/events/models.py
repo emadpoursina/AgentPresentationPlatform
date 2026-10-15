@@ -45,7 +45,17 @@ PRESENCE_EVENT_TYPES = [
     "participant_left",
 ]
 
-EVENT_TYPES = CANONICAL_EVENT_TYPES + EXTENDED_EVENT_TYPES + PRESENCE_EVENT_TYPES
+# F3 poll-lifecycle extensions: `poll_closed` is required by FR-015
+# (the F1 canonical list has poll_opened/vote_recorded/
+# audience_decision_applied but no close event). `poll_closing` marks the
+# transient window after voting stops while a tie/no-vote outcome awaits
+# presenter resolution, so the dashboard can render closing honestly.
+POLL_EVENT_TYPES = [
+    "poll_closed",
+    "poll_closing",
+]
+
+EVENT_TYPES = CANONICAL_EVENT_TYPES + EXTENDED_EVENT_TYPES + PRESENCE_EVENT_TYPES + POLL_EVENT_TYPES
 
 
 class ActivityEvent(BaseModel):

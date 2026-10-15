@@ -8,6 +8,7 @@ from .controller import (
     get_controller,
 )
 from .models import (
+    BranchContext,
     CompleteMissionRequest,
     CreateMissionRequest,
     FailMissionRequest,
@@ -16,6 +17,7 @@ from .models import (
 )
 
 __all__ = [
+    "BranchContext",
     "CompleteMissionRequest",
     "CreateMissionRequest",
     "FailMissionRequest",

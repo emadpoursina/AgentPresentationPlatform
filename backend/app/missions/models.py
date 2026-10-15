@@ -11,6 +11,17 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from backend.app.polls.models import AudienceDecision
+
+
+class BranchContext(BaseModel):
+    """Applied audience decisions (F3). Outcomes persist here and in the
+    event log; `current_branch_instruction` holds the winning option's
+    next-step task text, read by Hermes at execution time (F5)."""
+
+    applied_decisions: list[AudienceDecision] = Field(default_factory=list)
+    current_branch_instruction: str | None = Field(default=None, max_length=2000)
+
 
 class MissionStatus(StrEnum):
     CREATED = "created"
@@ -65,6 +76,7 @@ class Mission(BaseModel):
     result_summary: str | None = Field(default=None, max_length=5000)
     outcome: Literal["success", "partial", "failed"] | None = None
     error: str | None = Field(default=None, max_length=2000)
+    branch_context: BranchContext = Field(default_factory=BranchContext)
     created_at: datetime
     updated_at: datetime
 
