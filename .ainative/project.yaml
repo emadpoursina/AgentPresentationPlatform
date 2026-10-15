@@ -1,0 +1,15 @@
+name: live-agent-playground
+description: "Don't just explain agents. Let the audience direct them, watch them work, and evaluate their results."
+stack:
+  backend: "Python FastAPI + uv"
+  frontend: "Vanilla HTML/JS + SSE"
+  persistence: "SQLite"
+layout:
+  - backend/app/{api,missions,agents,events}
+  - frontend/static/
+  - data/
+  - tests/
+validation_commands:
+  - "uv sync --group dev"
+  - "uv run ruff check ."
+  - "uv run pytest -q"
