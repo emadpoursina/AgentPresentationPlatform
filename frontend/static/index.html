@@ -9,11 +9,21 @@
       #conn { padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
       #conn.connected { background: #e6f4ea; color: #137333; }
       #conn.disconnected { background: #fce8e6; color: #a50e0e; }
-      #mission { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+      section.card { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
       #controls button { margin: 0.25rem 0.25rem 0.25rem 0; }
       #events { list-style: none; padding: 0; }
       #events li { border-bottom: 1px solid #eee; padding: 0.4rem 0; font-size: 0.9rem; }
       .meta { color: #555; }
+      .real-only { color: #1a73e8; font-size: 0.85rem; }
+      .explanatory { color: #555; font-size: 0.85rem; font-style: italic; }
+      .empty { color: #666; font-style: italic; }
+      #mission-progress-track { background: #eee; border-radius: 4px; height: 8px; margin-top: 0.5rem; }
+      #mission-progress-bar { background: #1a73e8; border-radius: 4px; height: 8px; width: 0%; }
+      #result.failed { border-color: #a50e0e; }
+      #result.failed #result-outcome { color: #a50e0e; font-weight: bold; }
+      #result.success #result-outcome { color: #137333; font-weight: bold; }
+      .rows { list-style: none; padding: 0; }
+      .rows li { border-bottom: 1px solid #eee; padding: 0.4rem 0; font-size: 0.9rem; }
     </style>
   </head>
   <body>
@@ -22,13 +32,16 @@
       <div id="conn" class="disconnected" role="status">Disconnected — showing last known state, not live.</div>
       <p aria-live="polite">Participants connected: <strong id="presence-count">0</strong></p>
 
-      <section id="mission" aria-live="polite">
+      <section id="mission" class="card" aria-live="polite">
         <h2 id="mission-title">No mission yet</h2>
+        <p class="real-only">Real events only — mission state from the controller. Explanatory text is labelled, never mixed with execution data.</p>
         <p>
           Status: <strong id="mission-status">—</strong>
           · Step: <span id="mission-step">—</span>
           · Progress: <span id="mission-progress">0%</span>
         </p>
+        <div id="mission-progress-track" aria-hidden="true"><div id="mission-progress-bar"></div></div>
+        <p class="explanatory">Progress reflects workflow position only — never simulated.</p>
         <p id="mission-result" class="meta"></p>
         <div id="controls">
           <button id="btn-create" type="button">New mission</button>
@@ -41,7 +54,53 @@
         </div>
       </section>
 
-      <section id="poll-panel" aria-live="polite">
+      <section id="agents" class="card" aria-live="polite">
+        <h2>Agent activity</h2>
+        <p class="real-only">Real events only — rows appear only for actual agent execution events.</p>
+        <p class="meta empty" id="agents-empty">No agent activity yet — waiting for real execution events.</p>
+        <ul class="rows" id="agents-list"></ul>
+      </section>
+
+      <section id="tools" class="card" aria-live="polite">
+        <h2>Tool activity</h2>
+        <p class="real-only">Real events only — rows appear only for actual tool execution events.</p>
+        <p class="meta empty" id="tools-empty">No tool activity yet — waiting for real execution events.</p>
+        <ul class="rows" id="tools-list"></ul>
+      </section>
+
+      <section id="handoffs" class="card" aria-live="polite">
+        <h2>Agent handoffs</h2>
+        <p class="real-only">Real events only — rows appear only for actual handoff events.</p>
+        <p class="meta empty" id="handoffs-empty">No handoffs yet — waiting for real execution events.</p>
+        <ul class="rows" id="handoffs-list"></ul>
+      </section>
+
+      <section id="influence" class="card" aria-live="polite">
+        <h2>Audience influence</h2>
+        <p class="real-only">Real events only — poll state, outcome, and selected branch from real votes and decisions.</p>
+        <p class="meta empty" id="influence-empty">No polls yet — audience decisions will appear here.</p>
+        <div id="influence-body" hidden>
+          <p><strong id="influence-question"></strong></p>
+          <p class="meta" id="influence-state"></p>
+          <p class="meta" id="influence-counts"></p>
+          <p class="meta" id="influence-outcome"></p>
+          <p class="meta" id="influence-branch"></p>
+          <ul class="rows" id="influence-history"></ul>
+        </div>
+      </section>
+
+      <section id="result" class="card" aria-live="polite">
+        <h2>Final result</h2>
+        <p class="real-only">Real events only — result from actual mission completion or failure.</p>
+        <p class="meta empty" id="result-empty">No result yet — the mission has not finished.</p>
+        <div id="result-body" hidden>
+          <p>Summary: <span id="result-summary"></span></p>
+          <p>Outcome: <strong id="result-outcome"></strong></p>
+          <p class="meta" id="result-error"></p>
+        </div>
+      </section>
+
+      <section id="poll-panel" class="card" aria-live="polite">
         <h2>Polls (presenter)</h2>
         <p class="meta">Open polls, close them early, and resolve ties or silent polls. Audience votes at the voter page.</p>
         <p class="meta" id="poll-current-summary">No open poll</p>
@@ -70,7 +129,7 @@
         <p class="meta" id="poll-message" role="status"></p>
       </section>
 
-      <section>
+      <section class="card">
         <h2>Live activity (real events only)</h2>
         <p class="meta">Structured events from the mission controller. No simulated activity is shown.</p>
         <ul id="events"></ul>
