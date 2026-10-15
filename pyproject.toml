@@ -1,0 +1,38 @@
+[project]
+name = "live-agent-playground"
+version = "0.1.0"
+description = "Live Agent Playground: audience-driven AI agent demonstration (Hermes harness, local web app, mission controller)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi==0.143.1",
+  "uvicorn[standard]==0.54.0",
+  "aiosqlite==0.22.1",
+  "qrcode[pil]==8.2",
+  "pydantic==2.14.1",
+  "httpx==0.28.1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+  "ruff==0.17.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "strict"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend"]

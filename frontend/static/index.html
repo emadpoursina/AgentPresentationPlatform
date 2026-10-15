@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Live Agent Playground</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 1.5rem; max-width: 900px; }
+      #conn { padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+      #conn.connected { background: #e6f4ea; color: #137333; }
+      #conn.disconnected { background: #fce8e6; color: #a50e0e; }
+      #mission { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+      #controls button { margin: 0.25rem 0.25rem 0.25rem 0; }
+      #events { list-style: none; padding: 0; }
+      #events li { border-bottom: 1px solid #eee; padding: 0.4rem 0; font-size: 0.9rem; }
+      .meta { color: #555; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Live Agent Playground</h1>
+      <div id="conn" class="disconnected" role="status">Disconnected — showing last known state, not live.</div>
+      <p aria-live="polite">Participants connected: <strong id="presence-count">0</strong></p>
+
+      <section id="mission" aria-live="polite">
+        <h2 id="mission-title">No mission yet</h2>
+        <p>
+          Status: <strong id="mission-status">—</strong>
+          · Step: <span id="mission-step">—</span>
+          · Progress: <span id="mission-progress">0%</span>
+        </p>
+        <p id="mission-result" class="meta"></p>
+        <div id="controls">
+          <button id="btn-create" type="button">New mission</button>
+          <button id="btn-start" type="button">Start</button>
+          <button id="btn-pause" type="button">Pause</button>
+          <button id="btn-resume" type="button">Resume</button>
+          <button id="btn-complete" type="button">Complete</button>
+          <button id="btn-fail" type="button">Fail</button>
+          <button id="btn-reset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Live activity (real events only)</h2>
+        <p class="meta">Structured events from the mission controller. No simulated activity is shown.</p>
+        <ul id="events"></ul>
+      </section>
+
+      <section>
+        <h2>Joining help</h2>
+        <p class="meta">Audience members join from the join page (scan the QR code or open the join URL).</p>
+        <ul class="meta">
+          <li>Devices must be on the same hotspot or Wi-Fi as this computer.</li>
+          <li>If the join page does not load, enable hotspot device-to-device sharing.</li>
+          <li>Check the firewall and port binding if only some devices can connect.</li>
+          <li>The QR code always reflects the current reachable address — rescan if the network changed.</li>
+        </ul>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
