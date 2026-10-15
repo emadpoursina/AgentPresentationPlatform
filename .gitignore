@@ -2,4 +2,11 @@ scratch/
 data/*.db
 data/*.sqlite*
 __pycache__/
+*.pyc
 .venv/
+venv/
+dist/
+*.egg-info/
+.env*
+*.log
+.DS_Store

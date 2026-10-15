@@ -41,6 +41,35 @@
         </div>
       </section>
 
+      <section id="poll-panel" aria-live="polite">
+        <h2>Polls (presenter)</h2>
+        <p class="meta">Open polls, close them early, and resolve ties or silent polls. Audience votes at the voter page.</p>
+        <p class="meta" id="poll-current-summary">No open poll</p>
+        <div id="poll-current-actions" hidden>
+          <p class="meta" id="poll-current-tally"></p>
+          <p class="meta" id="poll-current-outcome"></p>
+          <button id="btn-poll-close" type="button">Close now</button>
+          <input id="poll-resolve-choice" placeholder="winning option id (ties / no votes)" size="32" />
+          <button id="btn-poll-resolve" type="button">Resolve</button>
+        </div>
+        <form id="poll-open-form">
+          <p><input id="poll-question" placeholder="Poll question" size="48" required /></p>
+          <div id="poll-option-rows"></div>
+          <p>
+            <button id="btn-poll-add-option" type="button">Add option</button>
+            <label>Deadline (s): <input id="poll-deadline" type="number" value="60" min="10" max="600" /></label>
+            <label>Reveal:
+              <select id="poll-reveal">
+                <option value="live">live counts</option>
+                <option value="controlled">controlled reveal</option>
+              </select>
+            </label>
+            <button id="btn-poll-open" type="submit">Open poll</button>
+          </p>
+        </form>
+        <p class="meta" id="poll-message" role="status"></p>
+      </section>
+
       <section>
         <h2>Live activity (real events only)</h2>
         <p class="meta">Structured events from the mission controller. No simulated activity is shown.</p>

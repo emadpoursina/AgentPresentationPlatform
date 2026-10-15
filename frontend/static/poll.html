@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vote — Live Agent Playground</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 1.5rem; max-width: 600px; }
+      #conn { padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 1rem; }
+      #conn.connected { background: #e6f4ea; color: #137333; }
+      #conn.disconnected { background: #fce8e6; color: #a50e0e; }
+      #poll { border: 1px solid #ddd; padding: 1rem; border-radius: 8px; }
+      #poll-options button { display: block; width: 100%; text-align: left; font-size: 1rem; margin: 0.4rem 0; padding: 0.6rem 0.8rem; }
+      #poll-options button[aria-pressed="true"] { outline: 3px solid #1a73e8; }
+      #vote-message { padding: 0.75rem; border-radius: 6px; margin-top: 1rem; display: none; }
+      #vote-message.ok { display: block; background: #e6f4ea; color: #137333; }
+      #vote-message.err { display: block; background: #fce8e6; color: #a50e0e; }
+      .meta { color: #555; font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Vote</h1>
+      <div id="conn" class="disconnected" role="status">Disconnected — showing last known state, not live.</div>
+      <p class="meta"><a href="/join.html">Join first</a> if you have not joined yet — only joined participants can vote.</p>
+
+      <section id="poll" aria-live="polite">
+        <h2 id="poll-question">No open poll</h2>
+        <p class="meta">State: <strong id="poll-state">—</strong> · <span id="poll-countdown"></span></p>
+        <p class="meta" id="poll-reveal"></p>
+        <div id="poll-options"></div>
+        <p class="meta" id="poll-results"></p>
+        <p class="meta" id="poll-outcome"></p>
+      </section>
+
+      <div id="vote-message" role="status"></div>
+    </main>
+    <script src="/poll.js"></script>
+  </body>
+</html>
