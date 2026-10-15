@@ -1,0 +1,20 @@
+{
+  "version": "1.0.10",
+  "integration_state_schema": 1,
+  "installed_integrations": [
+    "opencode",
+    "pi"
+  ],
+  "integration_settings": {
+    "opencode": {
+      "script": "sh",
+      "invoke_separator": "."
+    },
+    "pi": {
+      "script": "sh",
+      "invoke_separator": "."
+    }
+  },
+  "integration": "opencode",
+  "default_integration": "opencode"
+}
