@@ -20,6 +20,7 @@
     <main>
       <h1>Live Agent Playground</h1>
       <div id="conn" class="disconnected" role="status">Disconnected — showing last known state, not live.</div>
+      <p aria-live="polite">Participants connected: <strong id="presence-count">0</strong></p>
 
       <section id="mission" aria-live="polite">
         <h2 id="mission-title">No mission yet</h2>
@@ -44,6 +45,17 @@
         <h2>Live activity (real events only)</h2>
         <p class="meta">Structured events from the mission controller. No simulated activity is shown.</p>
         <ul id="events"></ul>
+      </section>
+
+      <section>
+        <h2>Joining help</h2>
+        <p class="meta">Audience members join from the join page (scan the QR code or open the join URL).</p>
+        <ul class="meta">
+          <li>Devices must be on the same hotspot or Wi-Fi as this computer.</li>
+          <li>If the join page does not load, enable hotspot device-to-device sharing.</li>
+          <li>Check the firewall and port binding if only some devices can connect.</li>
+          <li>The QR code always reflects the current reachable address — rescan if the network changed.</li>
+        </ul>
       </section>
     </main>
     <script src="/app.js"></script>

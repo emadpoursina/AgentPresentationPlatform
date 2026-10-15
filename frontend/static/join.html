@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Join — Live Agent Playground</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 1.5rem; max-width: 600px; }
+      #join-qr { max-width: 240px; border: 1px solid #ddd; border-radius: 8px; }
+      #join-confirmation { padding: 0.75rem; border-radius: 6px; margin-top: 1rem; display: none; }
+      #join-confirmation.ok { display: block; background: #e6f4ea; color: #137333; }
+      #join-confirmation.err { display: block; background: #fce8e6; color: #a50e0e; }
+      #not-ready { padding: 0.75rem; border-radius: 6px; background: #fef7e0; display: none; }
+      #not-ready.show { display: block; }
+      label { display: block; margin: 0.75rem 0 0.25rem; }
+      input { font-size: 1rem; padding: 0.4rem; width: 100%; max-width: 320px; }
+      button { font-size: 1rem; margin: 0.75rem 0.5rem 0 0; padding: 0.4rem 0.9rem; }
+      .meta { color: #555; font-size: 0.9rem; }
+      code { overflow-wrap: anywhere; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Join the presentation</h1>
+      <p class="meta">No account needed. Enter a display name or join anonymously.</p>
+
+      <div id="not-ready" role="alert">
+        Joining is not ready on this network yet. Please follow the setup notes
+        on the presentation screen (hotspot sharing, firewall, port binding).
+      </div>
+
+      <section id="join-target">
+        <h2>How to join</h2>
+        <img id="join-qr" alt="QR code for the join page" />
+        <p>Or open: <code id="join-url">…</code></p>
+      </section>
+
+      <form id="join-form">
+        <label for="display-name">Display name (optional, up to 30 characters)</label>
+        <input id="display-name" name="display-name" maxlength="60" autocomplete="off" />
+        <div>
+          <button id="btn-join" type="submit">Join</button>
+          <button id="btn-anon" type="button">Join anonymously</button>
+        </div>
+      </form>
+
+      <div id="join-confirmation" role="status"></div>
+
+      <section>
+        <h2>Trouble joining?</h2>
+        <ul class="meta">
+          <li>Make sure your device is on the same hotspot or Wi-Fi as the presenter.</li>
+          <li>If the page does not load, hotspot device-to-device sharing may be off.</li>
+          <li>Ask the presenter to check the firewall and port binding notes.</li>
+        </ul>
+      </section>
+    </main>
+    <script src="/join.js"></script>
+  </body>
+</html>

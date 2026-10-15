@@ -38,7 +38,14 @@ EXTENDED_EVENT_TYPES = [
     "mission_reset",
 ]
 
-EVENT_TYPES = CANONICAL_EVENT_TYPES + EXTENDED_EVENT_TYPES
+# F2 presence extensions: one real event per actual join/leave transition
+# (acceptance #8). Session scope uses mission_id "session" (see data-model).
+PRESENCE_EVENT_TYPES = [
+    "participant_joined",
+    "participant_left",
+]
+
+EVENT_TYPES = CANONICAL_EVENT_TYPES + EXTENDED_EVENT_TYPES + PRESENCE_EVENT_TYPES
 
 
 class ActivityEvent(BaseModel):
@@ -46,7 +53,10 @@ class ActivityEvent(BaseModel):
 
     id: int = Field(ge=1, description="Monotonic sequence, used as SSE id / Last-Event-ID")
     type: str = Field(description="Event type, one of EVENT_TYPES")
-    mission_id: str = Field(min_length=1, description="Owning mission identifier")
+    mission_id: str = Field(
+        min_length=1,
+        description="Owning mission identifier, or 'session' for presentation-level events",
+    )
     timestamp: datetime = Field(description="UTC timestamp of emission")
     data: dict[str, Any] = Field(default_factory=dict, description="Safe metadata")
 

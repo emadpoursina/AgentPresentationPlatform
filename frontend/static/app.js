@@ -7,6 +7,7 @@
   const progressEl = document.getElementById("mission-progress");
   const resultEl = document.getElementById("mission-result");
   const eventsEl = document.getElementById("events");
+  const presenceEl = document.getElementById("presence-count");
 
   let missionId = null;
   let eventSource = null;
@@ -61,6 +62,15 @@
     renderMission(m);
   }
 
+  async function refreshPresence() {
+    try {
+      const roster = await api("/api/participants");
+      presenceEl.textContent = String(roster.count);
+    } catch {
+      // Keep the last known count; the banner already shows staleness.
+    }
+  }
+
   async function loadHistory() {
     if (!missionId) return;
     eventsEl.replaceChildren();
@@ -88,6 +98,9 @@
         lastEventId = Math.max(lastEventId, ev.id);
         renderEvent(ev);
         refreshMission().catch(() => {});
+        if (ev.type === "participant_joined" || ev.type === "participant_left") {
+          refreshPresence().catch(() => {});
+        }
       } catch {
         // Ignore malformed rows; keep the stream open.
       }
@@ -113,6 +126,8 @@
       "agent_handoff",
       "agent_completed",
       "agent_failed",
+      "participant_joined",
+      "participant_left",
     ];
     for (const t of allTypes) es.addEventListener(t, handle);
   }
@@ -130,6 +145,7 @@
     }
     await loadHistory();
     connectStream();
+    await refreshPresence();
   }
 
   async function action(suffix, body) {
@@ -150,6 +166,7 @@
     renderMission(m);
     await loadHistory();
     connectStream();
+    await refreshPresence();
   };
   document.getElementById("btn-start").onclick = () => action("/start").catch((e) => alert(e.message));
   document.getElementById("btn-pause").onclick = () => action("/pause").catch((e) => alert(e.message));
