@@ -1,6 +1,7 @@
 scratch/
 data/*.db
 data/*.sqlite*
+data/runs/
 __pycache__/
 *.pyc
 .venv/

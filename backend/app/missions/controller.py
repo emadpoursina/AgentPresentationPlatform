@@ -15,6 +15,7 @@ from backend.app.events.store import EventStore
 from backend.app.events.store import event_store as _event_store
 
 from .models import (
+    AgentRunRecord,
     BranchContext,
     CompleteMissionRequest,
     CreateMissionRequest,
@@ -156,6 +157,117 @@ class MissionController:
             mission.branch_context = BranchContext()
             mission.updated_at = utcnow()
         self._store.append("mission_reset", mission.id, {"previous_status": previous.value})
+        return mission
+
+    # -- F5 runner hooks (T075): narrow transitions, no execution logic ----
+    # The controller stays the sole owner of every status transition; the
+    # runner only ever calls these + `fail`/`complete`. Nothing here touches a
+    # subprocess (plan.md PRD §4C).
+
+    def record_run_context(
+        self,
+        mission_id: str,
+        *,
+        objective: str | None = None,
+        resolved_model: str | None = None,
+        quota_note: str | None = None,
+    ) -> Mission:
+        """Record F5 run-scoped context (endpoint/CLI pre-flight results).
+        Only non-None values overwrite, so partial calls stay additive."""
+        mission = self.get(mission_id)
+        with self._lock:
+            if objective is not None:
+                mission.objective = objective
+            if resolved_model is not None:
+                mission.resolved_model = resolved_model
+            if quota_note is not None:
+                mission.quota_note = quota_note
+            mission.updated_at = utcnow()
+        return mission
+
+    def begin_step(self, mission_id: str, index: int, record: AgentRunRecord) -> None:
+        """Start hook: pin the workflow position and append the running record."""
+        mission = self.get(mission_id)
+        with self._lock:
+            mission.current_step_index = index
+            mission.agent_runs.append(record)
+            mission.updated_at = utcnow()
+
+    def finish_step(self, mission_id: str, agent_id: str, **fields) -> None:
+        """Complete hook: fill the stored record with the real result fields."""
+        mission = self.get(mission_id)
+        with self._lock:
+            for record in mission.agent_runs:
+                if record.agent_id == agent_id:
+                    for key, value in fields.items():
+                        setattr(record, key, value)
+                    record.completed_at = utcnow()
+                    break
+            mission.updated_at = utcnow()
+
+    def fail_step(self, mission_id: str, step_id: str, agent_id: str, error: str) -> None:
+        """Abort hook: mark the record failed and pin `failed_step_id` — the
+        anchor resume-at-failed-step (FR-021) re-enters on (T086/T088)."""
+        mission = self.get(mission_id)
+        with self._lock:
+            for record in mission.agent_runs:
+                if record.agent_id == agent_id:
+                    record.status = "failed"
+                    record.error = error[:2000]
+                    record.completed_at = utcnow()
+                    break
+            mission.failed_step_id = step_id
+            mission.updated_at = utcnow()
+
+    def advance_step(self, mission_id: str) -> Mission:
+        """Advance hook: move past the completed step; clearing
+        `failed_step_id` here honors "cleared only when execution advances
+        past that step" (T088)."""
+        mission = self.get(mission_id)
+        with self._lock:
+            mission.current_step_index = min(
+                mission.current_step_index + 1, len(mission.steps)
+            )
+            mission.failed_step_id = None
+            mission.updated_at = utcnow()
+        return mission
+
+    def retry(self, mission_id: str) -> Mission:
+        """The SOLE owner of the `failed` → `running` status flip (I2).
+        Does `retry_count += 1` and emits `mission_resumed {resumed_step,
+        retry_count}` — neither the endpoint nor the runner mutates status off
+        `failed` (contracts/workflow-api.md `retry`)."""
+        mission = self.get(mission_id)
+        if mission.status is not MissionStatus.FAILED or not mission.failed_step_id:
+            raise InvalidTransitionError(mission_id, "retry", mission.status)
+        with self._lock:
+            mission.retry_count += 1
+            mission.status = MissionStatus.RUNNING
+            mission.updated_at = utcnow()
+            payload = {
+                "status": MissionStatus.RUNNING.value,
+                "resumed_step": mission.failed_step_id,
+                "retry_count": mission.retry_count,
+            }
+        current = mission.current_step
+        if current is not None:
+            payload.setdefault("current_step", current.id)
+        self._store.append("mission_resumed", mission.id, payload)
+        return mission
+
+    def clear_run_state(self, mission_id: str) -> Mission:
+        """F5 reset wiring (T090): drop run-scoped fields so no stale state
+        survives into the next `created` run (mirrors F1 reset clearing
+        `result_summary`; F1 `reset` above is untouched)."""
+        mission = self.get(mission_id)
+        with self._lock:
+            mission.agent_runs = []
+            mission.failed_step_id = None
+            mission.retry_count = 0
+            mission.resolved_model = None
+            mission.objective = None
+            mission.quota_note = None
+            mission.updated_at = utcnow()
         return mission
 
     def apply_decision(
