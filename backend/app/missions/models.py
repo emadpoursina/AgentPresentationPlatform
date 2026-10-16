@@ -67,6 +67,24 @@ def default_steps() -> list[MissionStep]:
     return [s.model_copy(deep=True) for s in DEFAULT_STEPS]
 
 
+class AgentRunRecord(BaseModel):
+    """One executed (or aborted) agent step, preserved across failure and
+    retry (F5, data-model.md). Additive: F1 consumers ignore these fields."""
+
+    step_id: str = Field(min_length=1, max_length=64)
+    profile: str = Field(min_length=1, max_length=64)
+    agent_id: str = Field(min_length=1, max_length=64)
+    task_input: str = Field(default="", description="Exact composed task text handed to Hermes")
+    output: str = Field(default="", max_length=20000, description="Bounded raw agent output")
+    status: Literal["pending", "running", "completed", "failed"] = "pending"
+    error: str | None = Field(default=None, max_length=2000)
+    tool_calls: int = Field(default=0, ge=0)
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    duration_seconds: float | None = None
+    session_id: str | None = Field(default=None, max_length=128)
+
+
 class Mission(BaseModel):
     id: str = Field(min_length=1, max_length=64)
     title: str = Field(min_length=1, max_length=120)
@@ -79,6 +97,14 @@ class Mission(BaseModel):
     branch_context: BranchContext = Field(default_factory=BranchContext)
     created_at: datetime
     updated_at: datetime
+
+    # F5 additions — all default-valued so F1–F4 tests and consumers stay valid.
+    objective: str | None = Field(default=None, max_length=500)
+    agent_runs: list[AgentRunRecord] = Field(default_factory=list)
+    failed_step_id: str | None = Field(default=None, max_length=64)
+    retry_count: int = Field(default=0, ge=0)
+    resolved_model: str | None = Field(default=None, max_length=200)
+    quota_note: str | None = Field(default=None, max_length=500)
 
     @property
     def current_step(self) -> MissionStep | None:
